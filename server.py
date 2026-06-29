@@ -3,6 +3,8 @@ import os
 import re
 import subprocess
 import tempfile
+import subprocess
+from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
@@ -121,6 +123,46 @@ def simulate_verilog(verilog_path: str) -> dict:
             "outputs": outputs,
             "testbench": tb_source,
         }
+
+
+@mcp.tool()
+def check_verilog_syntax(file_path: str) -> dict:
+    """
+    Check a Verilog file for syntax errors using Icarus Verilog.
+
+    Args:
+        file_path: Path to a .v file.
+
+    Returns:
+        Dictionary containing compiler results.
+    """
+
+    path = Path(file_path)
+
+    if not path.exists():
+        return {
+            "syntax_ok": False,
+            "error": f"File not found: {file_path}"
+        }
+
+    output_file = path.with_suffix(".out")
+
+    result = subprocess.run(
+        [
+            "iverilog",
+            "-o",
+            str(output_file),
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    return {
+        "syntax_ok": result.returncode == 0,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }
 
 
 @mcp.tool()
